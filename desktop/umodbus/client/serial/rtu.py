@@ -213,7 +213,7 @@ def send_message(adu, serial_port):
     serial_port.flush()
 
     # Check exception ADU (which is shorter than all other responses) first.
-    """
+    
     exception_adu_size = 5
     response_error_adu = recv_exactly(serial_port.read, exception_adu_size)
     raise_for_exception_adu(response_error_adu)
@@ -224,5 +224,4 @@ def send_message(adu, serial_port):
         serial_port.read, expected_response_size - exception_adu_size)
 
     return parse_response_adu(response_error_adu + response_remainder, adu)
-    """
-    return adu
+    
