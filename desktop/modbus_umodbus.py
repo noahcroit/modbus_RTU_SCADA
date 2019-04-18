@@ -149,6 +149,32 @@ class device_rtu(Serial):
         except Exception as e:
             print("Error during send modbus message.")
             print(e)
+    
+
+    def write_coils(self, coil_start_address, write_values):
+        """ Modbus command : write multiple coils data (function code = 15)
+
+            @Argument :
+            coil_start_address (int16) : Coil start address where to write a set of coils data
+            write_values (int)    : write value(s)
+        """
+        
+        # Generate modbus RTU message
+        try:
+            message = modbus_rtu.write_multiple_coils(slave_id=self.device_id, starting_address=coil_start_address, values=write_values)
+        except Exception as e:
+            print("Error during generate modbus message.") 
+
+        # Send message via serial port
+        try:
+            if self.serialport.is_open:
+                response = modbus_rtu.send_message(message, self.serialport)
+                print("response={}".format(response))
+            else:
+                print("Error : Cannot send data. Serial port is closed.")
+        except Exception as e:
+            print("Error during send modbus message.")
+            print(e)
 
 
     def write_register(self, register_address, write_value):
@@ -156,7 +182,7 @@ class device_rtu(Serial):
 
             Argument :
             register_address (int16) : Address where to write a data
-            write_value (int16)      : Write data 
+            write_value (int16)      : Write data
         """
 
         # Enable byte system to be signed-value type
@@ -217,7 +243,7 @@ class device_rtu(Serial):
             print(e)
 
 
-    def read_coils(self, start_coil_address, number_of_coil):
+    def read_coils(self, start_coil_address, number_of_coils):
         """ Modbus command : Read coil data(s) (function code = 01)
 
             @Argument :
@@ -232,7 +258,7 @@ class device_rtu(Serial):
 
         # Generate modbus RTU message
         try:
-            message = modbus_rtu.read_coils(slave_id=self.device_id, starting_address=start_coil_address, quantity=number_of_coil)
+            message = modbus_rtu.read_coils(slave_id=self.device_id, starting_address=start_coil_address, quantity=number_of_coils)
         except Exception as e:
             print("Error during generate modbus message.")  
 
@@ -248,7 +274,39 @@ class device_rtu(Serial):
             print(e)
 
         return response
-        
+    
+
+
+    def read_discrete_inputs(self, start_discrete_address, number_of_inputs):
+        """ Modbus command : Read discrete input(s) (function code = 02)
+
+            @Argument :
+            start_discrete_address (int16) : Start discrete input address where to read a input data
+            number_of_inputs (int)         : number of discrete input(s) to read
+
+            @Return :
+            response : Discrete input(s) data
+        """
+
+        # Generate modbus RTU message
+        try:
+            message = modbus_rtu.read_discrete_inputs(slave_id=self.device_id, starting_address=start_discrete_address, quantity=number_of_inputs)
+        except Exception as e:
+            print("Error during generate modbus message.")  
+
+        # Send message via serial port
+        try:
+            if self.serialport.is_open:
+                response = modbus_rtu.send_message(message, self.serialport)
+                print("response={}".format(response))
+            else:
+                print("Error : Cannot send data. Serial port is closed.")
+        except Exception as e:
+            print("Error during send modbus message.")
+            print(e)
+
+        return response
+
 
     def read_holding_registers(self, start_register_address, number_of_registers):
         """ Modbus command : Read data to holding registers (function code = 03)
@@ -426,6 +484,31 @@ class device_tcp(Socket):
             print(e)
 
 
+    def write_coils(self, coil_start_address, write_values):
+        """ Modbus command : write multiple coils data (function code = 15)
+
+            @Argument :
+            coil_start_address (int16) : Coil start address where to write a set of coils data
+            write_values (int)    : write value(s)
+        """
+        
+        # Generate modbus TCP message
+        try:
+            message = modbus_tcp.write_multiple_coils(slave_id=self.device_id, starting_address=coil_start_address, values=write_values)
+        except Exception as e:
+            print("Error during generate modbus message.") 
+
+        # Send message via TCP socket
+        try:
+            self._connect()
+            response = modbus_tcp.send_message(message, self.tcp_socket)
+            print("response={}".format(response))
+            self._disconnect()
+        except Exception as e:
+            print("Error during send modbus message.")
+            print(e)
+
+
     def write_register(self, register_address, write_value):
         """ Modbus command : Write data to single register (function code = 06)
 
@@ -520,7 +603,37 @@ class device_tcp(Socket):
             print(e) 
 
         return response
-        
+    
+
+    def read_discrete_inputs(self, start_discrete_address, number_of_inputs):
+        """ Modbus command : Read discrete input(s) (function code = 02)
+
+            @Argument :
+            start_discrete_address (int16) : Start discrete input address where to read a input data
+            number_of_inputs (int)         : number of discrete input(s) to read
+
+            @Return :
+            response : Discrete input(s) data
+        """
+
+        # Generate modbus TCP message
+        try:
+            message = modbus_tcp.read_discrete_inputs(slave_id=self.device_id, starting_address=start_discrete_address, quantity=number_of_inputs)
+        except Exception as e:
+            print("Error during generate modbus message.")  
+
+        # Send message via TCP socket
+        try:
+            self._connect()
+            response = modbus_tcp.send_message(message, self.tcp_socket)
+            print("response={}".format(response))
+            self._disconnect()
+        except Exception as e:
+            print("Error during send modbus message.")
+            print(e)
+
+        return response
+
 
     def read_holding_registers(self, start_register_address, number_of_registers):
         """ Modbus command : Read data to holding registers (function code = 03)
