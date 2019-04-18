@@ -7,8 +7,10 @@ from umodbus.client.serial import rtu as modbus_rtu
 # Import for modbus TCP 
 import socket
 from socket import socket as Socket
-from umodbus import conf
 from umodbus.client import tcp as modbus_tcp
+
+# Import for both modbus RTU & TCP
+from umodbus import conf
 
 # List of used device address
 _DEVICE_ADDRESS_LIST = []
@@ -16,7 +18,6 @@ _DEVICE_ADDRESS_LIST = []
 # List of used serial port for modbus RTU
 # Note : Several instrument instances can share the same serialport
 _SERIALPORTS_LIST = [] 
-
 
 # Default value of modbus device id 
 _MODBUS_DEVICE_ID_DEFAUlT = 0x00
@@ -37,6 +38,8 @@ _TCP_SOCKET_IP_LIST = []
 _TCP_SOCKET_IP_DEFAULT = '10.10.100.254'
 _TCP_SOCKET_PORT_DEFAULT = 8899
 
+# Default signed-type of data byte in modbus communication
+_SIGNED_TYPE_DEFAULT = False
 
 
 class device_rtu(Serial):
@@ -44,8 +47,9 @@ class device_rtu(Serial):
     def __init__(self):
         """ Initialize modbus RTU object """
 
-        # modbus configuration (default)
+        # modbus configuration (default) : device ID, signed type of modbus's data-byte (True = signed-type byte)
         self.device_id  = _MODBUS_DEVICE_ID_DEFAUlT
+        self.signed_type = _SIGNED_TYPE_DEFAULT
 
         # serial port configuration (default) for modbus using pySerial 
         self.serialport = Serial()
@@ -63,7 +67,8 @@ class device_rtu(Serial):
                      bytesize=_SERIAL_BYTESIZE_DEFAUlT, 
                      parity=_SERIAL_PARITY_DEFAUlT, 
                      stopbit=_SERIAL_STOPBIT_DEFAUlT, 
-                     timeout=_SERIAL_TIMEOUT_DEFAUlT):
+                     timeout=_SERIAL_TIMEOUT_DEFAUlT,
+                     signed_type=_SIGNED_TYPE_DEFAULT):
         
         """ Config modbus RTU device. 
             Example, device address (or ID), 
@@ -78,10 +83,12 @@ class device_rtu(Serial):
                                => PARITY_NONE, PARITY_EVEN, PARITY_ODD, PARITY_MARK, PARITY_SPACE = 'N', 'E', 'O', 'M', 'S'
             stopbit (int)    : Stopbit of serial comm. Can be 1, 1.5, 2 bit(s)
             timeout (float)  : Timeout of serial comm. in second. Example, 0.1 = 100 msec
+            signed_type (bool) : Signed type of data-byte in modbus communication (True = signed-type, False = unsigned-type)
         """
         
         # modbus configuration
         self.device_id  = device_id
+        self.signed_type = signed_type
 
         # serial port configuration
         self.serialport.port = port
@@ -125,16 +132,23 @@ class device_rtu(Serial):
             coil_address (int16) : Coil address where to write a coil data
             write_value (int)    : write value
         """
-
+        
         # Generate modbus RTU message
-        message = modbus_rtu.write_single_coil(slave_id=self.device_id, address=coil_address, value=write_value)
+        try:
+            message = modbus_rtu.write_single_coil(slave_id=self.device_id, address=coil_address, value=write_value)
+        except Exception as e:
+            print("Error during generate modbus message.") 
 
         # Send message via serial port
-        if self.serialport.is_open:
-            response = modbus_rtu.send_message(message, self.serialport)
-            print("response={}".format(response))
-        else:
-            print("Cannot send data. Serial port is closed.")
+        try:
+            if self.serialport.is_open:
+                response = modbus_rtu.send_message(message, self.serialport)
+                print("response={}".format(response))
+            else:
+                print("Error : Cannot send data. Serial port is closed.")
+        except Exception as e:
+            print("Error during send modbus message.")
+            print(e)
 
 
     def write_register(self, register_address, write_value):
@@ -145,15 +159,29 @@ class device_rtu(Serial):
             write_value (int16)      : Write data 
         """
 
+        # Enable byte system to be signed-value type
+        if self.signed_type == True:
+            conf.SIGNED_VALUES = True
+        else:
+            conf.SIGNED_VALUES = False
+        
         # Generate modbus RTU message
-        message = modbus_rtu.write_single_register(slave_id=self.device_id, address=register_address, value=write_value)
+        try:
+            message = modbus_rtu.write_single_register(slave_id=self.device_id, address=register_address, value=write_value)
+        except Exception as e:
+            print("Error during generate modbus message.")
+            print("\tMaybe, write value is less than 0 as signed integer and .signed_type is set to 'False'.")  
 
         # Send message via serial port
-        if self.serialport.is_open:
-            response = modbus_rtu.send_message(message, self.serialport)
-            print("response={}".format(response))
-        else:
-            print("Cannot send data. Serial port is closed.")
+        try:
+            if self.serialport.is_open:
+                response = modbus_rtu.send_message(message, self.serialport)
+                print("response={}".format(response))
+            else:
+                print("Error : Cannot send data. Serial port is closed.")
+        except Exception as e:
+            print("Error during send modbus message.")
+            print(e)
 
 
     def write_registers(self, start_register_address, write_values):
@@ -164,15 +192,29 @@ class device_rtu(Serial):
             write_values (int16)           : Write data(s) 
         """
 
+        # Enable byte system to be signed-value type
+        if self.signed_type == True:
+            conf.SIGNED_VALUES = True
+        else:
+            conf.SIGNED_VALUES = False
+        
         # Generate modbus RTU message
-        message = modbus_rtu.write_multiple_registers(slave_id=self.device_id, starting_address=start_register_address, values=write_values)
+        try:
+            message = modbus_rtu.write_multiple_registers(slave_id=self.device_id, starting_address=start_register_address, values=write_values)
+        except Exception as e:
+            print("Error during generate modbus message.")
+            print("\tMaybe, write value is less than 0 as signed integer and .signed_type is set to 'False'.")  
 
         # Send message via serial port
-        if self.serialport.is_open:
-            response = modbus_rtu.send_message(message, self.serialport)
-            print("response={}".format(response))
-        else:
-            print("Cannot send data. Serial port is closed.")
+        try:
+            if self.serialport.is_open:
+                response = modbus_rtu.send_message(message, self.serialport)
+                print("response={}".format(response))
+            else:
+                print("Error : Cannot send data. Serial port is closed.")
+        except Exception as e:
+            print("Error during send modbus message.")
+            print(e)
 
 
     def read_coils(self, start_coil_address, number_of_coil):
@@ -189,15 +231,22 @@ class device_rtu(Serial):
         """
 
         # Generate modbus RTU message
-        message = modbus_rtu.read_coils(slave_id=self.device_id, starting_address=start_coil_address, quantity=number_of_coil)
+        try:
+            message = modbus_rtu.read_coils(slave_id=self.device_id, starting_address=start_coil_address, quantity=number_of_coil)
+        except Exception as e:
+            print("Error during generate modbus message.")  
 
         # Send message via serial port
-        if self.serialport.is_open:
-            response = modbus_rtu.send_message(message, self.serialport)
-            print("response={}".format(response))
-        else:
-            print("Cannot send data. Serial port is closed.")
-        
+        try:
+            if self.serialport.is_open:
+                response = modbus_rtu.send_message(message, self.serialport)
+                print("response={}".format(response))
+            else:
+                print("Error : Cannot send data. Serial port is closed.")
+        except Exception as e:
+            print("Error during send modbus message.")
+            print(e)
+
         return response
         
 
@@ -212,16 +261,29 @@ class device_rtu(Serial):
             response : Read data(s). Return as list of read data (sequently) if number_of_register > 1
         """
 
+        # Enable byte system of modbus to be signed-value type
+        if self.signed_type == True:
+            conf.SIGNED_VALUES = True
+        else:
+            conf.SIGNED_VALUES = False
+
         # Generate modbus RTU message
-        message = modbus_rtu.read_holding_registers(slave_id=self.device_id, starting_address=start_register_address, quantity=number_of_registers)
+        try:
+            message = modbus_rtu.read_holding_registers(slave_id=self.device_id, starting_address=start_register_address, quantity=number_of_registers)
+        except Exception as e:
+            print("Error during generate modbus message.")  
 
         # Send message via serial port
-        if self.serialport.is_open:
-            response = modbus_rtu.send_message(message, self.serialport)
-            print("response={}".format(response))
-        else:
-            print("Cannot send data. Serial port is closed.")
-    
+        try:
+            if self.serialport.is_open:
+                response = modbus_rtu.send_message(message, self.serialport)
+                print("response={}".format(response))
+            else:
+                print("Error : Cannot send data. Serial port is closed.")
+        except Exception as e:
+            print("Error during send modbus message.")
+            print(e) 
+
         return response
 
 
@@ -235,17 +297,30 @@ class device_rtu(Serial):
             @Return :
             response : Read data(s). Return as list of read data (sequently) if number_of_register > 1
         """
+        
+        # Enable byte system of modbus to be signed-value type
+        if self.signed_type == True:
+            conf.SIGNED_VALUES = True
+        else:
+            conf.SIGNED_VALUES = False
 
         # Generate modbus RTU message
-        message = modbus_rtu.read_input_registers(slave_id=self.device_id, starting_address=start_register_address, quantity=number_of_registers)
+        try:
+            message = modbus_rtu.read_input_registers(slave_id=self.device_id, starting_address=start_register_address, quantity=number_of_registers)
+        except Exception as e:
+            print("Error during generate modbus message.")  
 
         # Send message via serial port
-        if self.serialport.is_open:
-            response = modbus_rtu.send_message(message, self.serialport)
-            print("response={}".format(response))
-        else:
-            print("Cannot send data. Serial port is closed.")
-        
+        try:
+            if self.serialport.is_open:
+                response = modbus_rtu.send_message(message, self.serialport)
+                print("response={}".format(response))
+            else:
+                print("Error : Cannot send data. Serial port is closed.")
+        except Exception as e:
+            print("Error during send modbus message.")
+            print(e) 
+
         return response
 
 
@@ -257,6 +332,7 @@ class device_tcp(Socket):
 
         # modbus configuration (default)
         self.device_id  = _MODBUS_DEVICE_ID_DEFAUlT
+        self.signed_type = _SIGNED_TYPE_DEFAULT
 
         # TCP socket configuration (default) for modbus 
         self.tcp_socket = None
@@ -264,7 +340,8 @@ class device_tcp(Socket):
         self.socket_port = _TCP_SOCKET_PORT_DEFAULT
     
 
-    def config(self, device_id=_MODBUS_DEVICE_ID_DEFAUlT, socket_ip=_TCP_SOCKET_IP_DEFAULT, socket_port=_TCP_SOCKET_PORT_DEFAULT):
+    def config(self, device_id=_MODBUS_DEVICE_ID_DEFAUlT, socket_ip=_TCP_SOCKET_IP_DEFAULT, socket_port=_TCP_SOCKET_PORT_DEFAULT,
+                     signed_type=_SIGNED_TYPE_DEFAULT):
         """ Config modbus TCP device. 
             Example, device address (or ID), 
                      tcp socket configuration for modbus TCP device 
@@ -273,8 +350,16 @@ class device_tcp(Socket):
             device_id (int)  : Modbus device address number
             socket_ip (string)  : Socket IP number, Example, '192.168.1.1'.
             socket_port (int)   : Socket Port number. Example, 502.
+            signed_type (bool) : Signed type of data-byte in modbus communication (True = signed-type, False = unsigned-type)
         """
+
+        # Modbus ID
         self.device_id = device_id
+
+        # Signed type of data-byte
+        self.signed_type = signed_type
+
+        # Socket IP & Port number
         self.socket_ip   = socket_ip
         self.socket_port = socket_port
 
@@ -293,6 +378,7 @@ class device_tcp(Socket):
 
     def _connect(self):
         """ Connect TCP socket to modbus device """
+
         # connect tcp socket to remote IP address of modbus device   
         try:  
             self.tcp_socket = Socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -305,6 +391,7 @@ class device_tcp(Socket):
 
     def _disconnect(self):
         """ Disconnect TCP socket from modbus device """
+
         # disconnect TCP socket from remote IP address of modbus device   
         try:  
             self.tcp_socket.close()
@@ -321,14 +408,22 @@ class device_tcp(Socket):
             coil_address (int16) : Coil address where to write a coil data
             write_value (int)    : write value
         """
+        
         # Generate modbus TCP message
-        message = modbus_tcp.write_single_coil(slave_id=self.device_id, address=coil_address, value=write_value)
+        try:
+            message = modbus_tcp.write_single_coil(slave_id=self.device_id, address=coil_address, value=write_value)
+        except Exception as e:
+            print("Error during generate modbus message.")
 
         # Send message via TCP socket
-        self._connect()
-        response = modbus_tcp.send_message(message, self.tcp_socket)
-        print("response={}".format(response))
-        self._disconnect()
+        try:
+            self._connect()
+            response = modbus_tcp.send_message(message, self.tcp_socket)
+            print("response={}".format(response))
+            self._disconnect()
+        except Exception as e:
+            print("Error during send modbus message.")
+            print(e)
 
 
     def write_register(self, register_address, write_value):
@@ -338,14 +433,29 @@ class device_tcp(Socket):
             register_address (int16) : Address where to write a data
             write_value (int16)      : Write data 
         """
+
+        # Enable byte system of modbus to be signed-value type
+        if self.signed_type == True:
+            conf.SIGNED_VALUES = True
+        else:
+            conf.SIGNED_VALUES = False
+
         # Generate modbus TCP message
-        message = modbus_tcp.write_single_register(slave_id=self.device_id, address=register_address, value=write_value)
+        try:
+            message = modbus_tcp.write_single_register(slave_id=self.device_id, address=register_address, value=write_value)
+        except Exception as e:
+            print("Error during generate modbus message.")
+            print("\tMaybe, write value is less than 0 as signed integer and .signed_type is set to 'False'.")  
 
         # Send message via TCP socket
-        self._connect()
-        response = modbus_tcp.send_message(message, self.tcp_socket)
-        print("response={}".format(response))
-        self._disconnect()
+        try:
+            self._connect()
+            response = modbus_tcp.send_message(message, self.tcp_socket)
+            print("response={}".format(response))
+            self._disconnect()
+        except Exception as e:
+            print("Error during send modbus message.")
+            print(e) 
 
 
     def write_registers(self, start_register_address, write_values):
@@ -356,14 +466,28 @@ class device_tcp(Socket):
             write_values (int16)           : Write data(s) 
         """
 
-        # Generate modbus TCP message
-        message = modbus_tcp.write_multiple_registers(slave_id=self.device_id, starting_address=start_register_address, values=write_values)
+        # Enable byte system of modbus to be signed-value type
+        if self.signed_type == True:
+            conf.SIGNED_VALUES = True
+        else:
+            conf.SIGNED_VALUES = False
+
+        # Generate modbus TCP message        
+        try:
+            message = modbus_tcp.write_multiple_registers(slave_id=self.device_id, starting_address=start_register_address, values=write_values)
+        except Exception as e:
+            print("Error during generate modbus message.")
+            print("\tMaybe, write value is less than 0 as signed integer and .signed_type is set to 'False'.")    
 
         # Send message via TCP socket
-        self._connect()
-        response = modbus_tcp.send_message(message, self.tcp_socket)
-        print("response={}".format(response))
-        self._disconnect()
+        try:
+            self._connect()
+            response = modbus_tcp.send_message(message, self.tcp_socket)
+            print("response={}".format(response))
+            self._disconnect()
+        except Exception as e:
+            print("Error during send modbus message.")
+            print(e) 
 
         
     def read_coils(self, start_coil_address, number_of_coil):
@@ -378,15 +502,22 @@ class device_tcp(Socket):
                         The coils in the response message are packed as one coil per bit of the
                         data field. Status is indicated as 1= ON and 0= OFF.
         """
-
+        
         # Generate modbus TCP message
-        message = modbus_tcp.read_coils(slave_id=self.device_id, starting_address=start_coil_address, quantity=number_of_coil)
+        try:
+            message = modbus_tcp.read_coils(slave_id=self.device_id, starting_address=start_coil_address, quantity=number_of_coil)
+        except Exception as e:
+            print("Error during generate modbus message.")
 
         # Send message via TCP socket
-        self._connect()
-        response = modbus_tcp.send_message(message, self.tcp_socket)
-        print("response={}".format(response))
-        self._disconnect()
+        try:
+            self._connect()
+            response = modbus_tcp.send_message(message, self.tcp_socket)
+            print("response={}".format(response))
+            self._disconnect()
+        except Exception as e:
+            print("Error during send modbus message.")
+            print(e) 
 
         return response
         
@@ -401,16 +532,29 @@ class device_tcp(Socket):
             @Return :
             response : Read data(s). Return as list of read data (sequently) if number_of_register > 1
         """
+        
+        # Enable byte system of modbus to be signed-value type
+        if self.signed_type == True:
+            conf.SIGNED_VALUES = True
+        else:
+            conf.SIGNED_VALUES = False
 
-        # Generate modbus RTU message
-        message = modbus_tcp.read_holding_registers(slave_id=self.device_id, starting_address=start_register_address, quantity=number_of_registers)
+        # Generate modbus TCP message
+        try:
+            message = modbus_tcp.read_holding_registers(slave_id=self.device_id, starting_address=start_register_address, quantity=number_of_registers)
+        except Exception as e:
+            print("Error during generate modbus message.")
 
         # Send message via TCP socket
-        self._connect()
-        response = modbus_tcp.send_message(message, self.tcp_socket)
-        print("response={}".format(response))
-        self._disconnect()
-    
+        try:
+            self._connect()
+            response = modbus_tcp.send_message(message, self.tcp_socket)
+            print("response={}".format(response))
+            self._disconnect()
+        except Exception as e:
+            print("Error during send modbus message.")
+            print(e) 
+
         return response
 
 
@@ -424,16 +568,29 @@ class device_tcp(Socket):
             @Return :
             response : Read data(s). Return as list of read data (sequently) if number_of_register > 1
         """
+        
+        # Enable byte system of modbus to be signed-value type
+        if self.signed_type == True:
+            conf.SIGNED_VALUES = True
+        else:
+            conf.SIGNED_VALUES = False
 
-        # Generate modbus RTU message
-        message = modbus_tcp.read_input_registers(slave_id=self.device_id, starting_address=start_register_address, quantity=number_of_registers)
+        # Generate modbus TCP message
+        try:
+            message = modbus_tcp.read_input_registers(slave_id=self.device_id, starting_address=start_register_address, quantity=number_of_registers)
+        except Exception as e:
+            print("Error during generate modbus message.")
 
         # Send message via TCP socket
-        self._connect()
-        response = modbus_tcp.send_message(message, self.tcp_socket)
-        print("response={}".format(response))
-        self._disconnect()
-        
+        try:
+            self._connect()
+            response = modbus_tcp.send_message(message, self.tcp_socket)
+            print("response={}".format(response))
+            self._disconnect()
+        except Exception as e:
+            print("Error during send modbus message.")
+            print(e) 
+
         return response
 
 

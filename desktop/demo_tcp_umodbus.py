@@ -1,12 +1,14 @@
 import modbus_umodbus
 import time
+import signal
+
 
 
 slave_ip = '10.10.100.254'
 slave_port = 8899
 
 psa0350_dimmer = modbus_umodbus.device_tcp()
-psa0350_dimmer.config(device_id=0x01, socket_ip=slave_ip, socket_port=slave_port)
+psa0350_dimmer.config(device_id=0x01, socket_ip=slave_ip, socket_port=slave_port, signed_type=True)
 
 print(psa0350_dimmer.device_id)
 print(psa0350_dimmer.tcp_socket)
@@ -26,6 +28,7 @@ while stopFlag == 0:
     if userInput != 'q':
         write_value = int(userInput)
         
+        """
         if write_value > 99:
             print(str(write_value) + " -> " + str(99))
             write_value = 99
@@ -35,6 +38,7 @@ while stopFlag == 0:
             write_value = 0
         else:
             print(write_value)    
+        """
 
         # Send modbus command
         psa0350_dimmer.write_register(register_address=0x00, write_value=write_value)
