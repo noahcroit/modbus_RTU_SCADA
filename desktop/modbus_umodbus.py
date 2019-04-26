@@ -217,7 +217,7 @@ class device_rtu(Serial):
             start_register_address (int16) : Start address where to write a data
             write_values (int16)           : Write data(s) 
         """
-
+        
         # Enable byte system to be signed-value type
         if self.signed_type == True:
             conf.SIGNED_VALUES = True
@@ -255,6 +255,7 @@ class device_rtu(Serial):
                         The coils in the response message are packed as one coil per bit of the
                         data field. Status is indicated as 1= ON and 0= OFF.
         """
+        response = None
 
         # Generate modbus RTU message
         try:
@@ -287,6 +288,7 @@ class device_rtu(Serial):
             @Return :
             response : Discrete input(s) data
         """
+        response = None
 
         # Generate modbus RTU message
         try:
@@ -318,6 +320,7 @@ class device_rtu(Serial):
             @Return :
             response : Read data(s). Return as list of read data (sequently) if number_of_register > 1
         """
+        response = None
 
         # Enable byte system of modbus to be signed-value type
         if self.signed_type == True:
@@ -355,7 +358,8 @@ class device_rtu(Serial):
             @Return :
             response : Read data(s). Return as list of read data (sequently) if number_of_register > 1
         """
-        
+        response = None
+
         # Enable byte system of modbus to be signed-value type
         if self.signed_type == True:
             conf.SIGNED_VALUES = True
@@ -573,22 +577,23 @@ class device_tcp(Socket):
             print(e) 
 
         
-    def read_coils(self, start_coil_address, number_of_coil):
+    def read_coils(self, start_coil_address, number_of_coils):
         """ Modbus command : Read coil data(s) (function code = 01)
 
             @Argument :
             start_coil_address (int16) : Start coil address where to read a coil data
-            number_of_coil (int)       : number of coil(s) to read
+            number_of_coils (int)      : number of coil(s) to read
 
             @Return :
             response : Coil data (Byte)
                         The coils in the response message are packed as one coil per bit of the
                         data field. Status is indicated as 1= ON and 0= OFF.
         """
-        
+        response = None
+
         # Generate modbus TCP message
         try:
-            message = modbus_tcp.read_coils(slave_id=self.device_id, starting_address=start_coil_address, quantity=number_of_coil)
+            message = modbus_tcp.read_coils(slave_id=self.device_id, starting_address=start_coil_address, quantity=number_of_coils)
         except Exception as e:
             print("Error during generate modbus message.")
 
@@ -615,6 +620,7 @@ class device_tcp(Socket):
             @Return :
             response : Discrete input(s) data
         """
+        response = None
 
         # Generate modbus TCP message
         try:
@@ -645,7 +651,8 @@ class device_tcp(Socket):
             @Return :
             response : Read data(s). Return as list of read data (sequently) if number_of_register > 1
         """
-        
+        response = None
+
         # Enable byte system of modbus to be signed-value type
         if self.signed_type == True:
             conf.SIGNED_VALUES = True
@@ -681,6 +688,7 @@ class device_tcp(Socket):
             @Return :
             response : Read data(s). Return as list of read data (sequently) if number_of_register > 1
         """
+        response = None
         
         # Enable byte system of modbus to be signed-value type
         if self.signed_type == True:
