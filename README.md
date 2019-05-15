@@ -6,5 +6,5 @@ Desktop-level
 - Modbus TCP/ Modbus RTU
 
 Embedded-level
-- Run on Pycom's LoPy board (ESP32 MCU). LoPy will be connected with USR-WIFI232 module as RS485/WIFI signal converter using WIFI.
+- Run on Pyboard_D (from micropython), Pycom's LoPy board (ESP32 MCU). LoPy will be connected with USR-WIFI232 module as RS485/WIFI signal converter using WIFI.
 - Modbus TCP/ Modbus RTU
