@@ -493,7 +493,7 @@ class device_tcp(Socket):
 
             @Argument :
             coil_start_address (int16) : Coil start address where to write a set of coils data
-            write_values (int)    : write value(s)
+            write_values (int)    : write value(s) (list-type)
         """
         
         # Generate modbus TCP message
