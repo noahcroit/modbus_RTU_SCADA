@@ -28,7 +28,7 @@ _SERIAL_BAUD_DEFAUlT = 9600
 _SERIAL_BYTESIZE_DEFAUlT = 8
 _SERIAL_PARITY_DEFAUlT = PARITY_NONE
 _SERIAL_STOPBIT_DEFAUlT = 1
-_SERIAL_TIMEOUT_DEFAUlT = 0.1
+_SERIAL_TIMEOUT_DEFAUlT = 1
 
 # List of socket ip address for modbus TCP
 # Note : Several instrument instances can not share the same ip address
@@ -37,6 +37,7 @@ _TCP_SOCKET_IP_LIST = []
 # Default value of tcp/ip socket for modbus TCP
 _TCP_SOCKET_IP_DEFAULT = '10.10.100.254'
 _TCP_SOCKET_PORT_DEFAULT = 8899
+_TCP_SOCKET_TIMEOUT_DEFAULT = 1
 
 # Default signed-type of data byte in modbus communication
 _SIGNED_TYPE_DEFAULT = False
@@ -400,10 +401,10 @@ class device_tcp(Socket):
         self.tcp_socket = None
         self.socket_ip   = _TCP_SOCKET_IP_DEFAULT
         self.socket_port = _TCP_SOCKET_PORT_DEFAULT
-    
+        self.socket_timeout = _TCP_SOCKET_TIMEOUT_DEFAULT
 
     def config(self, device_id=_MODBUS_DEVICE_ID_DEFAUlT, socket_ip=_TCP_SOCKET_IP_DEFAULT, socket_port=_TCP_SOCKET_PORT_DEFAULT,
-                     signed_type=_SIGNED_TYPE_DEFAULT):
+                     socket_timeout=_TCP_SOCKET_TIMEOUT_DEFAULT, signed_type=_SIGNED_TYPE_DEFAULT):
         """ Config modbus TCP device. 
             Example, device address (or ID), 
                      tcp socket configuration for modbus TCP device 
@@ -412,6 +413,7 @@ class device_tcp(Socket):
             device_id (int)  : Modbus device address number
             socket_ip (string)  : Socket IP number, Example, '192.168.1.1'.
             socket_port (int)   : Socket Port number. Example, 502.
+            socket_timeout (float) : Socket timeout in second.
             signed_type (bool) : Signed type of data-byte in modbus communication (True = signed-type, False = unsigned-type)
         """
 
@@ -425,25 +427,31 @@ class device_tcp(Socket):
         self.socket_ip   = socket_ip
         self.socket_port = socket_port
 
-        # Print a configuration status
-        print("configuration completed.")
-        if socket_ip not in _TCP_SOCKET_IP_LIST:
-            _TCP_SOCKET_IP_LIST.append(socket_ip)
-        else:
-            print("Warning : More than 1 device are sharing the same ip address. Please use another ip address.")
+        try:
+            self.tcp_socket = Socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.tcp_socket.settimeout(self.socket_timeout)
 
-        if device_id not in _DEVICE_ADDRESS_LIST:
-            _DEVICE_ADDRESS_LIST.append(device_id)
-        else:
-            print("Warning : More than 1 device are using the same device address! Please use another device address.")
+            # Print a configuration status
+            print("configuration completed.")
+            if socket_ip not in _TCP_SOCKET_IP_LIST:
+                _TCP_SOCKET_IP_LIST.append(socket_ip)
+            else:
+                print("Warning : More than 1 device are sharing the same ip address. Please use another ip address.")
 
+            if device_id not in _DEVICE_ADDRESS_LIST:
+                _DEVICE_ADDRESS_LIST.append(device_id)
+            else:
+                print("Warning : More than 1 device are using the same device address! Please use another device address.")
+
+        except Exception as e:
+            print("Error during socket configuration...")
+            print(e)
 
     def _connect(self):
         """ Connect TCP socket to modbus device """
 
         # connect tcp socket to remote IP address of modbus device   
         try:  
-            self.tcp_socket = Socket(socket.AF_INET, socket.SOCK_STREAM)
             self.tcp_socket.connect((self.socket_ip, self.socket_port))
 
         except Exception as e:
